@@ -9,8 +9,8 @@ A Railway template for [Sequin](https://github.com/sequinstream/sequin), the ope
 | Service | Source | Notes |
 |---|---|---|
 | **Sequin** | this repo (`Dockerfile`) | `sequin/sequin:v0.14.6`, pinned by digest. Web console and management API on the public domain. Health check `/health` (checks Postgres and Redis). |
-| **Postgres** | Railway Postgres | Sequin's own configuration and state: accounts, sinks, encrypted credentials, message outbox. On a volume. |
-| **Redis** | Railway Redis | Sequin's runtime state and locks. On a volume, with append-only persistence. |
+| **Postgres** | Railway Postgres | Sequin's own configuration and state: accounts, sinks, encrypted credentials, message outbox. On a volume. Started with `wal_level=logical`, so you can also create a test database in it and stream from it while you try Sequin. |
+| **Redis** | Railway Redis | Sequin's runtime state and locks. On a volume, with RDB snapshots and the append-only file (`--appendonly yes`) on, because Sequin needs a Redis that keeps its data across restarts. |
 
 The Sequin container itself keeps no local state, so a redeploy or restart loses nothing.
 
@@ -40,7 +40,7 @@ Each of these can be overridden by setting the variable on the service. Optional
 ## After deploy
 
 1. Open the Sequin service's URL and sign in with `SEQUIN_ADMIN_EMAIL` and the value of `SEQUIN_ADMIN_PASSWORD` (Sequin service → Variables).
-2. Connect the Postgres database you want to stream from. It needs `wal_level = logical`. For a Railway Postgres in the same project, set its start command to `/bin/sh -c "exec wrapper.sh postgres --port=${PGPORT} -c wal_level=logical"`, redeploy it, and connect over the private network (`*.railway.internal`, port 5432, SSL off).
+2. Connect the Postgres database you want to stream from (**Connect database** in the console). Sequin uses logical replication, so that database needs `wal_level = logical`, a publication and a replication slot; the console shows the SQL. For a Railway Postgres in another project, set its start command to `/usr/bin/tini -g -- /usr/local/bin/wrapper.sh postgres -p 5432 -c listen_addresses=* -c wal_level=logical` and redeploy it. For a database in this project, use its `*.railway.internal` host, port 5432, SSL off.
 3. Add a sink (Kafka, SQS, webhook, ...) and a backfill if you need existing rows.
 
 ## Updates
