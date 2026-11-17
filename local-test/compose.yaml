@@ -1,0 +1,30 @@
+name: her-2468
+services:
+  sequin:
+    build: ..
+    image: her-2468-sequin
+    labels: [her=2468]
+    ports: ["42468:8080"]
+    environment:
+      PORT: "8080"
+      PG_URL: postgresql://postgres:testpw-local-only@postgres:5432/railway
+      REDIS_URL: redis://default:redispw-local-only@redis:6379
+      SECRET_KEY_BASE: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      VAULT_KEY: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+      SERVER_HOST: localhost
+      SEQUIN_ADMIN_EMAIL: admin@example.com
+      SEQUIN_ADMIN_PASSWORD: local-test-password-1
+    mem_limit: 1g
+    depends_on: [postgres, redis]
+  postgres:
+    image: postgres:16
+    labels: [her=2468]
+    command: ["postgres", "-c", "wal_level=logical"]
+    environment: {POSTGRES_DB: railway, POSTGRES_USER: postgres, POSTGRES_PASSWORD: testpw-local-only}
+    volumes: [pg:/var/lib/postgresql/data]
+  redis:
+    image: redis:7
+    labels: [her=2468]
+    command: ["redis-server", "--requirepass", "redispw-local-only", "--appendonly", "yes"]
+    volumes: [redis:/data]
+volumes: {pg: {}, redis: {}}
